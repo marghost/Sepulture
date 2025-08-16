@@ -3,8 +3,8 @@ This GBC game is designed for learning and serves as a foundation for a small bu
 
 ## Requirements
 - GBDK-2020 installed: https://github.com/gbdk-2020/gbdk-2020
-- `make` and a working C compiler (GCC/Clang)
-- A Game Boy emulator (SameBoy, BGB, mGBA)
+- `make` (cygwin) and a working C compiler (GCC/Clang)
+- A Game Boy emulator (SameBoy)
 
 ## Building
 ```bash
@@ -12,12 +12,10 @@ This GBC game is designed for learning and serves as a foundation for a small bu
 export GBDK_HOME=/path/to/gbdk
 make
 ```
-The compiled ROM will be generated in `build/dungeon.gbc`.
+The compiled ROM will be generated in `build/Sepulture.gbc`.
 
 ## Running
-- SameBoy: `sameboy build/dungeon.gbc`
-- BGB: `bgb build/dungeon.gbc`
-- mGBA: `mgba build/dungeon.gbc`
+- SameBoy: `c:/sameboy/sameboy.exe build/Sepulture.gbc`
 
 ## Controls
 - **D-Pad**: Move the hero (basic wall collision)
