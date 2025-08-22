@@ -1,50 +1,29 @@
-#include <gb/gb.h>
-#include <gb/cgb.h>
-#include <stdint.h>
-
 /*
 =============================================================
  Sépulture (GBC RPG)
- Minimal Game Boy Color RPG foundation using GBDK-2020.
+ Minimal Game Boy Color RPG built using GBDK-2020.
  - Background: bordered dungeon walls
- - Player: 8x16 sprite (square shape)
- - Movement: D-Pad with simple collision
+ - Player: 8x8 sprite (winking sample sprite)
+ - Movement: D-Pad without collision
+ - Sample Map made with GBMB
+ - Sprites created with GBTD
 =============================================================
 */
 
-// --- Background tiles ---
-// Tile 0: floor (checkerboard stone)
-const unsigned char floorTile[] = {
-    0x18,0x18,0x24,0x24,0x18,0x18,0x24,0x24,
-    0x18,0x18,0x24,0x24,0x18,0x18,0x24,0x24,
-    0x18,0x18,0x24,0x24,0x18,0x18,0x24,0x24,
-    0x18,0x18,0x24,0x24,0x18,0x18,0x24,0x24
-};
+#include <gb/gb.h>
+#include <gb/cgb.h>
+#include <stdint.h>
+#include <gbdk/font.h>
 
-// Tile 1: wall (solid brick)
-const unsigned char wallTile[] = {
-    0xFF,0xFF,0x81,0x81,0xBD,0xBD,0x81,0x81,
-    0xFF,0xFF,0x81,0x81,0xBD,0xBD,0x81,0x81,
-    0xFF,0xFF,0x81,0x81,0xBD,0xBD,0x81,0x81,
-    0xFF,0xFF,0x81,0x81,0xBD,0xBD,0x81,0x81
-};
+//LOADING SPRITES
+#include "../assets/sprites/smileysprite.c"
+#include "../assets/sprites/basicbackgrounds.c"
 
-// -----------------------------------------------------------
-// Player sprite: 8x16 (two stacked tiles)
-// -----------------------------------------------------------
-const unsigned char hero_tiles[] = {
-    // Tile 0: upper half (square outline)
-    0xFF,0xFF,0x81,0x81,0x81,0x81,0x81,0x81,
-    0x81,0x81,0x81,0x81,0x81,0x81,0x81,0x81,
-    0xFF,0xFF,0x81,0x81,0x81,0x81,0x81,0x81,
-    0x81,0x81,0x81,0x81,0x81,0x81,0xFF,0xFF,
+//LOADING MAPS
+#include "../assets/maps/samplemap.c"
 
-    // Tile 1: lower half
-    0xFF,0xFF,0x81,0x81,0x81,0x81,0x81,0x81,
-    0x81,0x81,0x81,0x81,0x81,0x81,0x81,0x81,
-    0xFF,0xFF,0x81,0x81,0x81,0x81,0x81,0x81,
-    0x81,0x81,0x81,0x81,0x81,0x81,0xFF,0xFF
-};
+//LOADING WINDOW MAP
+#include "../assets/maps/windowmap.c"
 
 // -----------------------------------------------------------
 // CGB palettes (4 colors each)
@@ -57,48 +36,21 @@ const UWORD spr_palettes[] = {
     RGB_WHITE, RGB_LIGHTGRAY, RGB_DARKGRAY, RGB_BLACK
 };
 
-// -----------------------------------------------------------
-// Map data: 20x18 tiles, with wall borders
-// -----------------------------------------------------------
-#define MAP_W 20
-#define MAP_H 18
-unsigned char map[MAP_W * MAP_H];
+void main() {
+    // Set sprite state
+    UINT8 currentspriteindex = 0;
 
-// Build map with walls on the edges
-void build_map(void) {
-    for (uint8_t y = 0; y < MAP_H; y++) {
-        for (uint8_t x = 0; x < MAP_W; x++) {
-            if (x == 0 || y == 0 || x == MAP_W-1 || y == MAP_H-1) {
-                map[y*MAP_W + x] = 1; // wall
-            } else {
-                map[y*MAP_W + x] = 0; // floor
-            }
-        }
-    }
-}
+    //Variable to load the font
+    font_t min_font;
 
-/**
- * Check if a pixel position collides with a wall tile.
- * Returns 1 if blocked, 0 if free.
- */
-uint8_t is_blocked(uint8_t px, uint8_t py) {
-    uint8_t tx = px >> 3;
-    uint8_t ty = py >> 3;
-    if (tx >= MAP_W || ty >= MAP_H) return 1;
-    return map[ty * MAP_W + tx] == 1;
-}
-
-void main(void) {
-    // Enable 8x16 sprite mode
-    SPRITES_8x16;
+    //initialise font library
+    //load onto our variable the font we want and set it
+    font_init();
+    min_font = font_load(font_min);
+    font_set(min_font);
 
     // Enable Color Game Boy features if available
     cgb_compatibility();
-
-    // Load background tiles into VRAM
-    set_bkg_data(0, 2, floorTile);
-    build_map();
-    set_bkg_tiles(0, 0, MAP_W, MAP_H, map);
 
     // Apply palettes if running on CGB
     if (_cpu == CGB_TYPE) {
@@ -106,42 +58,64 @@ void main(void) {
         set_sprite_palette(0, 1, spr_palettes);
     }
 
-    // Load player sprite
-    set_sprite_data(0, 2, hero_tiles);
-    set_sprite_tile(0, 0); // upper tile
-    set_sprite_tile(1, 1); // lower tile
-    uint8_t x = 80, y = 72; // player position
-    move_sprite(0, x, y);
-    move_sprite(1, x, y + 8);
+    //Loading data from sprite (2 tiles)
+    //Set "0" first sprite and "0" first tile in the memory
+    //Place the sprite were we want it to be, the center of the screen (80x78)
+    set_sprite_data(0, 2, smileysprite);
+    set_sprite_tile(0, 0);
+    move_sprite(0, 88, 78);
 
-    SHOW_BKG; SHOW_SPRITES; DISPLAY_ON;
+    //Loading background data
+    //We start at 37 to give place to our font from 0 to 36
+    //Set background in memory
+    set_bkg_data(37, 7, basicbackgrounds);
+    set_bkg_tiles(0, 0, 40, 18, samplemap);
 
-    uint8_t speed = 1;
+    //Loading window layer data at 0x0.  Select long. 11.  Select high 1.
+    //Display : HELLO WORLD
+    set_win_tiles(0,0,11,1,windowmap);
+    move_win(7,120);
 
-    while (1) {
-        wait_vbl_done();
+    //Display the background layer, window layer, sprite layer, power on the display (set flags)
+    SHOW_BKG; SHOW_WIN; SHOW_SPRITES; DISPLAY_ON;
 
-        uint8_t keys = joypad();
-
-        int8_t dx = 0, dy = 0;
-        if (keys & J_LEFT)  dx = -speed;
-        if (keys & J_RIGHT) dx =  speed;
-        if (keys & J_UP)    dy = -speed;
-        if (keys & J_DOWN)  dy =  speed;
-
-        // Candidate new position
-        uint8_t new_x = x + dx;
-        uint8_t new_y = y + dy;
-
-        // Collision check: top and bottom of sprite
-        if (!is_blocked(new_x - 4, new_y - 8) && !is_blocked(new_x - 4, new_y)) {
-            x = new_x;
+    while(1){
+        //Detect joypad presses and move sprite by 10 and move background by 1
+        switch(joypad()){
+            case J_LEFT:
+                scroll_sprite(0,-10,0);
+                scroll_bkg(-1,0);
+                break;
+            case J_RIGHT:
+                scroll_sprite(0,10,0);
+                scroll_bkg(1,0);
+                break;
+            case J_UP:
+                scroll_sprite(0,0,-10);
+                scroll_bkg(0,-1);
+                break;
+            case J_DOWN:
+                scroll_sprite(0,0,10);
+                scroll_bkg(0,1);
+                break;
         }
-        if (!is_blocked(x - 4, new_y - 8) && !is_blocked(x - 4, new_y)) {
-            y = new_y;
-        }
 
-        move_sprite(0, x, y);
-        move_sprite(1, x, y + 8);
+        //cycle through the two sprites
+        if(currentspriteindex==0){
+            currentspriteindex = 1;
+        }else{
+            currentspriteindex = 0;
+        }
+        set_sprite_tile(0, currentspriteindex);
+
+        //Create a delay to slow down slow the loop
+        delay(100);
     }
 }
+
+/*
+=============================================================
+ LICENCE : CC BY-NC-SA 4.0
+ LICENCE URL : http://creativecommons.org/licenses/by-nc-sa/4.0/
+=============================================================
+*/
